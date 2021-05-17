@@ -1,0 +1,635 @@
+const cxy = {
+  "0": [-25.4338333, -49.2933368],
+  "1": [-25.434756, -49.276366],
+  "2": [-25.415414, -49.272487]
+};
+
+function initMap(param = 0) {
+  $(".lojas-oficiais")
+    .parent()
+    .removeClass("active");
+  $(this)
+    .parent()
+    .addClass("active");
+  var map = "",
+    marker = "";
+  map = new google.maps.Map(document.getElementById("map"), {
+    center: {
+      lat: cxy[param][0],
+      lng: cxy[param][1]
+    },
+    zoom: 14,
+    panControl: false,
+    streetViewControl: false,
+    mapTypeControl: false
+  });
+  marker = new google.maps.Marker({
+    position: {
+      lat: cxy[param][0],
+      lng: cxy[param][1]
+    },
+    map: map,
+    title: "Home"
+  });
+}
+
+$(".customPrevBtn").click(function() {
+  $(".owl-carousel").trigger("prev.owl.carousel");
+});
+
+$(".customNextBtn").click(function() {
+  $(".owl-carousel").trigger("next.owl.carousel");
+});
+
+$(document).on("click", ".lojas-oficiais", function(e) {
+  initMap($(this).attr("data-id"));
+});
+
+if (document.location.pathname == "/noticias/preview") {
+  $("#title").html(localStorage.getItem("title"));
+  $("#subtitle").html(localStorage.getItem("subtitle"));
+  $("#author").html(localStorage.getItem("author"));
+  var data = new Date(localStorage.getItem("publish"));
+  $("#date").html(
+    data.toLocaleDateString() + " - " + data.toLocaleTimeString()
+  );
+  $("#category").html(localStorage.getItem("category"));
+  $("#body").html(localStorage.getItem("body"));
+  localStorage.clear();
+}
+
+const $_ = $(".body-article img");
+$_.each((i, item) => {
+  let title = "",
+    width = "",
+    float = "",
+    classe = "",
+    padding = "none";
+  if (item.title) {
+    title = item.title;
+    width = item.style.width;
+    if (item.style.float) {
+      float = item.style.float;
+      if (float == "left") {
+        padding = "padding: 15px; padding-left: 0;";
+      } else {
+        padding = "padding: 15px; padding-right: 0;";
+      }
+    } else {
+      float = "none";
+    }
+    item.style = 0;
+    item.classList = "w-100";
+    $(item).replaceWith(
+      $(
+        '<figure class="mb-3 d-inline-block note-float-' +
+          float +
+          '" style="width: ' +
+          width +
+          "; float: " +
+          float +
+          "; max-width: 100%;" +
+          padding +
+          '">' +
+          item.outerHTML +
+          '<figcaption class="px-2 py-1 text-left">' +
+          title +
+          "</figcaption></figure>"
+      )
+    );
+  } else {
+    if ((float = item.style.float)) {
+      if (float == "left") {
+        $(item)
+          .css("padding", "15px")
+          .css("padding-left", "0");
+      } else {
+        $(item)
+          .css("padding", "15px")
+          .css("padding-right", "0");
+      }
+    } else {
+      $(item).css("padding", "15px");
+    }
+  }
+});
+
+$(document).on("click", ".comment-like", function(e) {
+  $($(this).parent("div")[0])
+    .find(".comment-like")
+    .attr("disabled", true)
+    .addClass("disabled");
+  comment = this;
+  type = "";
+  dados = {};
+  $(comment)
+    .find("span")
+    .html(
+      parseInt(
+        $(comment)
+          .find("span")
+          .html()
+      ) + 1
+    );
+  if ($(this).find(".fa-thumbs-up").length >= 1) {
+    url = document.location.origin + "/dia-a-dia/up";
+    type = "up";
+    $.ajax({
+      type: "POST",
+      url: url,
+      data: {
+        _token: $('meta[name="csrf-token"]').attr("content"),
+        id: $(this)
+          .parents("[data-id]")
+          .attr("data-id")
+      },
+      success: function(retorno) {
+        if (!retorno) {
+          console.log(retorno);
+        }
+      }
+    });
+  } else if ($(this).find(".fa-thumbs-down").length >= 1) {
+    url = document.location.origin + "/dia-a-dia/down";
+    type = "down";
+    $.ajax({
+      type: "POST",
+      url: url,
+      data: {
+        _token: $('meta[name="csrf-token"]').attr("content"),
+        id: $(this)
+          .parents("[data-id]")
+          .attr("data-id")
+      },
+      success: function(retorno) {
+        if (!retorno) {
+          console.log(retorno);
+        }
+      }
+    });
+  }
+  var dados = JSON.parse(sessionStorage.getItem("votes"));
+  if (!dados) {
+    dados = {};
+    sessionStorage.setItem("votes", JSON.stringify(dados));
+  }
+  dados[
+    $(comment)
+      .parents("[data-id]")
+      .attr("data-id")
+  ] = type;
+  sessionStorage.setItem("votes", JSON.stringify(dados));
+});
+
+$(document).on("click", ".comment-post", function(e) {
+  if (
+    $(this)
+      .parents("[data-id]")
+      .find(".comment-comment")
+      .hasClass("d-none")
+  ) {
+    $(this)
+      .parents("[data-id]")
+      .find(".comment-comment:last")
+      .removeClass("d-none");
+  } else {
+    $(this)
+      .parents("[data-id]")
+      .find(".comment-comment:last")
+      .addClass("d-none");
+  }
+});
+
+$(document).on("click", ".comment-post-button", function(e) {
+  input = this;
+  if (
+    $(this)
+      .parents(".info-card")
+      .find("input")
+      .val() == ""
+  ) {
+    $(this)
+      .parents(".info-card")
+      .find("input")
+      .focus();
+  } else {
+    $(input)
+      .attr("disabled", true)
+      .html("Enviando...");
+    url = document.location.origin + "/dia-a-dia/commentPost";
+    $.ajax({
+      type: "POST",
+      url: url,
+      data: {
+        _token: $('meta[name="csrf-token"]').attr("content"),
+        id: $(this)
+          .parents("[data-id]")
+          .attr("data-id"),
+        comment: $(this)
+          .parents(".info-card")
+          .find("input")
+          .val()
+      },
+      success: function(retorno) {
+        if (retorno == "login") {
+          $("#loginModal").modal("show");
+        } else if (retorno == "false") {
+          $(input)
+            .attr("disabled", false)
+            .html("Enviar");
+          console.log(retorno);
+        } else {
+          $(input)
+            .parents(".info-card")
+            .find("input")
+            .val("");
+          $(input)
+            .parents("[data-id]")
+            .find(".comment-comment:last")
+            .addClass("d-none");
+          $(input)
+            .parents(".comment-block")
+            .find(".has-comment")
+            .append(retorno);
+          $(input)
+            .parents(".comment-block")
+            .find(".load-oldest")
+            .attr(
+              "data-count",
+              parseInt(
+                $(input)
+                  .parents(".comment-block")
+                  .find(".load-oldest")
+                  .attr("data-count")
+              ) + 1
+            );
+          $(input)
+            .attr("disabled", false)
+            .html("Enviar");
+        }
+      }
+    });
+  }
+});
+
+$(document).on("click", ".load-oldest", function(e) {
+  input = this;
+  url = document.location.origin + "/dia-a-dia/loadOldest";
+  $.ajax({
+    type: "POST",
+    url: url,
+    data: {
+      _token: $('meta[name="csrf-token"]').attr("content"),
+      id: $(input)
+        .parents("[data-id]")
+        .attr("data-id"),
+      count: $(input).attr("data-count")
+    },
+    success: function(retorno) {
+      if (retorno != "false") {
+        $(input).attr("data-count", parseInt($(input).attr("data-count")) + 3);
+        $(input)
+          .parents("[data-id]")
+          .find(".has-comment")
+          .prepend(retorno);
+      } else {
+        $(input).remove();
+      }
+    }
+  });
+});
+
+function isScrolledIntoView(elem) {
+  var docViewTop = $(window).scrollTop();
+  var docViewBottom = docViewTop + $(window).height();
+
+  var elemTop = $(elem).offset().top;
+  var elemBottom = elemTop + $(elem).height();
+  return parseInt(elemBottom) <= docViewBottom && elemTop >= docViewTop;
+}
+
+function formatarData(param) {
+  var data = new Date(param);
+  return data.toLocaleString();
+}
+
+function makeComment(comments) {
+  linha = "";
+  JSON.parse(comments).forEach(function(v) {
+    linha +=
+      '<div class="comment-block" data-id="' +
+      v.id +
+      '"><div class="row comment"><div class="avatar-card col-sm-2"><img class="img-fluid rounded-5" src="/' +
+      v.image +
+      '"><span class="timeline"></span></div><div class="info-card col text-left"><h4 class="mb-0">' +
+      v.name +
+      "</h4><p>" +
+      v.name_twitter +
+      " - " +
+      formatarData(v.date) +
+      '</p><p class="paragraph">' +
+      v.body +
+      '</p><div><button type="button" class="comment-like button-day like-button"><i class="fa fa-thumbs-up"></i> <span>' +
+      v.like +
+      '</span></button> <button href="javascript:" class="comment-like button-day unlike-button"><i class="fa fa-thumbs-down"></i> <span>' +
+      v.unlike +
+      '</span></button><i class="fa fa-circle minor"></i><button type="button" class="comment-post button-day">Comentar</button></div>';
+    if (v.comments.length > 1) {
+      linha +=
+        '<a href="javascript:" class="d-inline-block mt-3 load-oldest" data-count="1">Carregar mais coment�rios...</a>';
+    }
+    linha += '</div></div><div class="has-comment">';
+    if (v.comments.length > 0) {
+      linha +=
+        '<div class="row comment-comment"><div class="avatar-card col-sm-2"><img class="img-fluid rounded-5" src="https://www.jamf.com/jamf-nation/img/default-avatars/generic-user-purple.png"><span class="timeline"></span></div><div class="info-card col text-left"><div class="d-flex align-items-center mb-2"><h5 class="mb-0 mr-2">Usu�rio</h5> <p class="mb-0">' +
+        formatarData(v.comments[v.comments.length - 1].created_at) +
+        '</p></div><p class="paragraph">' +
+        v.comments[v.comments.length - 1].body +
+        "</p></div></div>";
+    }
+    linha +=
+      '</div><div class="row comment-comment d-none"><div class="avatar-card col-sm-2"><img class="img-fluid rounded-5" src="https://www.jamf.com/jamf-nation/img/default-avatars/generic-user-purple.png"><span class="timeline"></span></div><div class="info-card col text-left row"><div class="col-sm-8 d-flex align-items-center"><input type="text" class="form-control" name="comment-input" id="" value=""></div><div class="col-sm-2 d-flex align-items-center"><button class="btn btn-success comment-post-button" type="button">Enviar</button></div></div></div></div>';
+  });
+  return linha;
+}
+
+function loadComments() {
+  countOld = countPage;
+  $(".loading-ajax").fadeIn();
+  url = document.location.origin + "/dia-a-dia/moreComments";
+  $.ajax({
+    type: "POST",
+    url: url,
+    data: {
+      _token: $('meta[name="csrf-token"]').attr("content"),
+      count: countPage
+    },
+    success: function(retorno) {
+      if (retorno != "false") {
+        linhas = makeComment(retorno);
+        $(".comments-section").append(linhas);
+        $(".loading-ajax").fadeOut();
+        verifyVotes();
+        countPage++;
+      } else {
+        $(".loading-ajax").fadeOut();
+      }
+    }
+  });
+}
+
+function verifyVotes() {
+  var votos = JSON.parse(sessionStorage.getItem("votes"));
+  if (votos) {
+    $.each(votos, function(post, type) {
+      $("[data-id=" + post + "]")
+        .find("button:not(:last-child)")
+        .attr("disabled", true)
+        .addClass("disabled");
+    });
+  }
+}
+
+$(document).ready(function() {
+  $(".owl-carousel").owlCarousel({
+    loop: true,
+    autoplay: false,
+    autoplayTimeout: 3000,
+    autoplayHoverPause: true,
+    dots: true,
+    dotsEach: true,
+    nav: false,
+    items: 1,
+    center: true
+  });
+  $("[data-menu]")
+    .parents("li")
+    .removeClass("active");
+  $("[data-menu]").removeClass("active");
+  menu = localStorage.getItem("menu");
+  if (menu) {
+    $("[data-menu=" + menu + "]")
+      .parents("li")
+      .addClass("active");
+    $("[data-menu=" + menu + "]").addClass("active");
+  } else {
+    if (document.location.pathname == "/") {
+      $("[data-menu=0]")
+        .parents("li")
+        .addClass("active");
+    }
+  }
+  localStorage.removeItem("menu");
+  if (document.location.pathname == "/dia-a-dia") {
+    verifyVotes();
+    var $footer = $("footer");
+    countPage = 1;
+    countOld = 0;
+    $(window).scroll(function() {
+      if (countPage != countOld) {
+        if (isScrolledIntoView($footer)) loadComments();
+      }
+    });
+  }
+  if ($("#modal").length > 0) {
+    $("#modal").modal("show");
+    url = document.location.origin + "/user/modal";
+    $.ajax({
+      url: url,
+      type: "post",
+      data: {
+        _token: $('meta[name="csrf-token"]').attr("content")
+      }
+    });
+  }
+
+  menuResize();
+
+  window.addEventListener("resize", function() {
+    menuResize();
+  });
+
+  function menuResize() {
+    if (window.innerWidth >= 767) {
+      $(".dropdown").on("mouseover", function() {
+        $(this).addClass("show");
+        $(this)
+          .find(".dropdown-menu")
+          .addClass("show");
+        $(this)
+          .find("a")
+          .attr("aria-expanded", true);
+        $("[name=atributo]").focus();
+      });
+
+      $(".dropdown").on("mouseout", function() {
+        $(this).removeClass("show");
+        $(this)
+          .find(".dropdown-menu")
+          .removeClass("show");
+        $(this)
+          .find("a")
+          .attr("aria-expanded", false);
+      });
+    }
+  }
+
+  $("[data-accessibility=toggle]").on("click", function() {
+    if ($(this).attr("data-open") === "false") {
+      $("[data-accessibility=wrapper]").css("transform", "none");
+      $(this).attr("data-open", "true");
+    } else {
+      $("[data-accessibility=wrapper]").css("transform", "translateX(150px)");
+      $(this).attr("data-open", "false");
+    }
+  });
+
+  $("[data-accessibility=increase]").on("click", function() {
+    const html = $("html");
+    const fontSize = html.css("font-size");
+    const size = parseInt(fontSize.replace("px", ""));
+
+    const sizeValue = `${size + 1}px`;
+
+    html.css("font-size", sizeValue);
+    setItemInStorage("fontSize", sizeValue);
+  });
+
+  $("[data-accessibility=decrease]").on("click", function() {
+    const html = $("html");
+    const fontSize = html.css("font-size");
+    const size = parseInt(fontSize.replace("px", ""));
+    const sizeValue = `${size - 1}px`;
+
+    html.css("font-size", sizeValue);
+    setItemInStorage("fontSize", sizeValue);
+  });
+
+  $("[data-accessibility=greyscale]").on("click", function() {
+    const body = $("body");
+    const greyscale = parseLocalStorageValue("greyscale");
+
+    greyscale ? body.removeClass("greyscale") : body.addClass("greyscale");
+    setItemInStorage("greyscale", !greyscale);
+  });
+
+  $("[data-accessibility=reset]").on("click", function() {
+    const html = $("html");
+    const body = $("body");
+
+    html.css("font-size", "16px");
+    body.removeClass("greyscale");
+    setItemInStorage("fontSize", "16px");
+    setItemInStorage("greyscale", false);
+  });
+
+  function setItemInStorage(name, value) {
+    const values = parseLocalStorageValue();
+    localStorage.setItem(
+      "flamengo-site",
+      JSON.stringify({
+        ...values,
+        [name]: value
+      })
+    );
+  }
+
+  function parseLocalStorageValue(attr) {
+    const key = JSON.parse(localStorage.getItem("flamengo-site"));
+
+    if (key && attr) {
+      return key[attr] ? key[attr] : null;
+    }
+
+    return key;
+  }
+
+  function verifyStorage() {
+    const html = $("html");
+    const body = $("body");
+
+    const greyscale = parseLocalStorageValue("greyscale");
+    const fontSize = parseLocalStorageValue("fontSize");
+
+    fontSize && html.css("font-size", fontSize);
+    greyscale && body.addClass("greyscale");
+  }
+
+  verifyStorage();
+});
+
+function downloadThis(button) {
+  url = document.location.origin + "/fotos/download";
+  $.ajax({
+    type: "POST",
+    url: url,
+    data: {
+      _token: $('meta[name="csrf-token"]').attr("content"),
+      id: $(button).attr("data-id")
+    },
+    success: function(c) {
+      download(c);
+    }
+  });
+}
+
+function downloadFile(button) {
+  url = document.location.origin + "/files/download";
+  $.ajax({
+    type: "POST",
+    url: url,
+    data: {
+      _token: $('meta[name="csrf-token"]').attr("content"),
+      id: $(button).attr("data-id")
+    },
+    success: function(c) {
+      c = JSON.parse(c);
+      download(c[0], c[1]);
+    }
+  });
+}
+
+$(document).on("focus", ".commentInput", function(e) {
+  $("#loginModal").modal("show");
+});
+
+$(document).on("click", "#commentButton", function(e) {
+  if ($("#commentInput").val() == "") {
+    $("#commentInput").focus();
+  } else {
+    $(this)
+      .parents("form")
+      .submit();
+  }
+});
+
+$(document).on("click", "[data-menu]", function(e) {
+  localStorage.setItem("menu", $(this).attr("data-menu"));
+});
+
+// $('.dropdown').on('mouseover', function() {
+//     e.preventDefault();
+//     e.stopPropagation();
+//     $(this).addClass('show');
+//     $(this).find('.dropdown-menu').addClass('show');
+//     $(this).find('a').attr('aria-expanded', true);
+// });
+
+// $('.dropdown').on('mouseout', function() {
+//     e.preventDefault();
+//     e.stopPropagation();
+//     $(this).removeClass('show');
+//     $(this).find('.dropdown-menu').removeClass('show');
+//     $(this).find('a').attr('aria-expanded', false);
+// });
+
+$(function () {
+  $('[data-toggle="popover"]')
+  .popover()
+  .on('shown.bs.popover', function () {
+    var $popup = $(this);
+    $('.close-search').click(function (e) {
+      $popup.popover('hide')
+    })
+  })
+});
